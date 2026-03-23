@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список проектов</title>
+    <link rel="stylesheet" href="/static/css/style_catalog.css">
+</head>
+<body>
+<div class="top-bar">
+    <button class="logout-btn" onclick="logout()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        выйти
+    </button>
+</div>
+<div class="container">
+    <div class="search-container">
+        <div class="search-box">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            <input type="text" class="search-input" placeholder="поиск по названию" id="searchInput">
+        </div>
+    </div>
+
+    <div class="filters-container">
+        <div class="filters">
+            <div class="filter-wrapper">
+                <button class="filter-btn" onclick="toggleDropdown('chapters')">
+                    по кол-ву глав
+                    <svg class="dropdown-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="filter-wrapper">
+                <button class="filter-btn" onclick="toggleDropdown('genre')">
+                    по жанру
+                    <svg class="dropdown-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="filter-wrapper">
+                <button class="filter-btn" onclick="toggleDropdown('status')">
+                    по статусу
+                    <svg class="dropdown-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <button class="new-project-btn" onclick="addNewProject()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            новый проект
+        </button>
+    </div>
+    <div class="projects-list" id="projectsList"></div>
+</div>
+
+<script src="/static/js/notifications.js"></script>
+<script src="/static/js/script_catalog.js"></script>
+</body>
+</html>

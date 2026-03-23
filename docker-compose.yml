@@ -1,0 +1,79 @@
+version: '3.9'
+
+services:
+
+  db:
+    image: postgres:15-alpine
+    container_name: writers_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: OveR2568
+      POSTGRES_DB: auth_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  auth_service:
+    build:
+      context: .
+      dockerfile: auth_service/Dockerfile
+    container_name: writers_auth
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:OveR2568@db:5432/auth_db
+      SECRET_KEY: 8f4e6d2a9c1b7e5f3a0d8c7b6e9f2a1d4c7b8e3a9f6d2c5b1e8f7a4d0c9b6e3
+      JWT_SECRET_KEY: 5a8c1e7b3d9f2a6c4b8e1d7a0c9f3b6d2e8a5c7b1f9d4e6a3c8b0e7d2a9f
+    ports:
+      - "8010:8010"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./frontend:/app/frontend
+
+  catalog_service:
+    build:
+      context: .
+      dockerfile: catalog_service/Dockerfile
+    container_name: writers_catalog
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:OveR2568@db:5432/auth_db
+      JWT_SECRET_KEY: 5a8c1e7b3d9f2a6c4b8e1d7a0c9f3b6d2e8a5c7b1f9d4e6a3c8b0e7d2a9f
+    ports:
+      - "8011:8011"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./frontend:/app/frontend
+
+  project_service:
+    build:
+      context: .
+      dockerfile: project_service/Dockerfile
+    container_name: writers_project
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:OveR2568@db:5432/auth_db
+      JWT_SECRET_KEY: 5a8c1e7b3d9f2a6c4b8e1d7a0c9f3b6d2e8a5c7b1f9d4e6a3c8b0e7d2a9f
+      CATALOG_URL: http://catalog_service:8011
+    ports:
+      - "8012:8012"
+    depends_on:
+      db:
+        condition: service_healthy
+      catalog_service:
+        condition: service_started
+    volumes:
+      - ./frontend:/app/frontend
+
+volumes:
+  postgres_data:

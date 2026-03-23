@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизация</title>
+    <link rel="stylesheet" href="/static/css/style_auth.css">
+</head>
+<body>
+
+<div class="notification-container" id="notificationContainer"></div>
+
+<div class="container">
+
+    <div class="tabs">
+        <div class="slider" id="tabSlider"></div>
+        <button class="tab active" id="loginTab" onclick="showLogin()">Вход</button>
+        <button class="tab" id="registerTab" onclick="showRegister()">Регистрация</button>
+    </div>
+
+    <form class="form active" id="loginForm" onsubmit="return false;">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="example@mail.com" autocomplete="email">
+
+        <label>Пароль</label>
+        <input type="password" id="loginPassword" placeholder="Введите пароль" autocomplete="current-password">
+
+        <button class="btn" type="button" onclick="handleLogin()">Войти</button>
+
+        <div class="switch">
+            Нет аккаунта? <span onclick="showRegister()">Зарегистрироваться</span>
+        </div>
+        <div class="switch">
+            <span onclick="showForgotPassword()">Забыли пароль?</span>
+        </div>
+    </form>
+
+    <form class="form" id="registerForm" onsubmit="return false;">
+        <label>Email <span style="color:#c0392b">*</span></label>
+        <input type="email" id="registerEmail" placeholder="example@mail.com" autocomplete="email">
+
+        <label>Имя (необязательно)</label>
+        <input type="text" id="registerFullName" placeholder="Ваше имя">
+
+        <label>Пароль <span style="color:#c0392b">*</span></label>
+        <input type="password" id="registerPassword" placeholder="Минимум 8 символов" autocomplete="new-password">
+
+        <label>Повторите пароль <span style="color:#c0392b">*</span></label>
+        <input type="password" id="registerPasswordConfirm" placeholder="Повторите пароль" autocomplete="new-password">
+
+        <button class="btn" type="button" onclick="handleSendRegisterCode()">Получить код на почту</button>
+
+        <div class="switch">
+            Уже есть аккаунт? <span onclick="showLogin()">Войти</span>
+        </div>
+    </form>
+
+    <form class="form" id="registerCodeForm" onsubmit="return false;">
+        <p style="font-size:13px;color:#4a5568;margin:0 0 8px;">
+            Код отправлен на <strong id="registerEmailDisplay"></strong>
+        </p>
+
+        <label>Код из письма</label>
+        <input type="text" id="registerCode" placeholder="6-значный код"
+               maxlength="6" inputmode="numeric" autocomplete="one-time-code"
+               style="letter-spacing:6px;font-size:20px;text-align:center;">
+
+        <button class="btn" type="button" onclick="handleRegister()">Завершить регистрацию</button>
+
+        <div class="switch">
+            <span onclick="showRegister()">← Изменить данные</span>
+        </div>
+        <div class="switch">
+            <span onclick="handleSendRegisterCode(true)">Отправить код повторно</span>
+        </div>
+    </form>
+
+    <form class="form" id="forgotForm" onsubmit="return false;">
+        <p style="font-size:13px;color:#4a5568;margin:0 0 8px;">
+            мы отправим код для сброса пароля
+        </p>
+
+        <label>Email</label>
+        <input type="email" id="forgotEmail" placeholder="example@mail.com" autocomplete="email">
+
+        <button class="btn" type="button" onclick="handleSendResetCode()">Получить код</button>
+
+        <div class="switch">
+            <span onclick="showLogin()">← Вернуться ко входу</span>
+        </div>
+    </form>
+
+    <form class="form" id="resetCodeForm" onsubmit="return false;">
+        <p style="font-size:13px;color:#4a5568;margin:0 0 8px;">
+            Код отправлен на <strong id="resetEmailDisplay"></strong>
+        </p>
+
+        <label>Код из письма</label>
+        <input type="text" id="resetCode" placeholder="6-значный код"
+               maxlength="6" inputmode="numeric" autocomplete="one-time-code"
+               style="letter-spacing:6px;font-size:20px;text-align:center;">
+
+        <button class="btn" type="button" onclick="handleVerifyResetCode()">Подтвердить</button>
+
+        <div class="switch">
+            <span onclick="showForgotPassword()">Изменить email</span>
+        </div>
+        <div class="switch">
+            <span onclick="handleSendResetCode(true)">Отправить код повторно</span>
+        </div>
+    </form>
+
+    <form class="form" id="newPasswordForm" onsubmit="return false;">
+        <p style="font-size:13px;color:#4a5568;margin:0 0 8px;">
+            Придумайте новый пароль <strong id="resetEmailDisplay2"></strong>
+        </p>
+
+        <label>Новый пароль</label>
+        <input type="password" id="newPassword" placeholder="Минимум 8 символов" autocomplete="new-password">
+
+        <label>Повторите новый пароль</label>
+        <input type="password" id="newPasswordConfirm" placeholder="Повторите пароль" autocomplete="new-password">
+
+        <button class="btn" type="button" onclick="handleResetPassword()">Сохранить пароль</button>
+    </form>
+
+</div>
+
+<script src="/static/js/notifications.js"></script>
+<script src="/static/js/script_auth.js"></script>
+</body>
+</html>
