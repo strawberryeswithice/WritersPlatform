@@ -99,7 +99,7 @@ class Character(Base):
     features     = Column(String(500), nullable=True)
     personality  = Column(Text, nullable=True)
     desc_full    = Column(Text, nullable=True)
-    photo        = Column(Text, nullable=True)
+    photo = Column(String(500), nullable=True)
     order        = Column(Integer, default=0)
     created_at   = Column(DateTime(timezone=True), server_default=func.now())
     updated_at   = Column(DateTime(timezone=True), onupdate=func.now())

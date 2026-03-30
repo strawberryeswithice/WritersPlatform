@@ -37,3 +37,7 @@ async def startup_event():
 @app.get("/project/{project_id}")
 async def project_page(project_id: int):
     return FileResponse(frontend_path / "templates" / "project.html")
+
+@app.get("/editor/{project_id}/{chapter_id}")
+async def editor_page(project_id: int, chapter_id: int):
+    return FileResponse(frontend_path / "templates" / "editor.html")

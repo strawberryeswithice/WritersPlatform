@@ -4,6 +4,7 @@ const PROJECT_ID = (() => {
 })();
 
 const API_BASE = `http://localhost:8012/api/projects/${PROJECT_ID}`;
+const MINIO_BASE = 'http://localhost:9000/character-photos';
 
 const state = {
     title: '',
@@ -58,6 +59,12 @@ async function apiFetch(url, options = {}) {
     return res;
 }
 
+function getPhotoUrl(photoPath) {
+    if (!photoPath) return null;
+    if (photoPath.startsWith('http')) return photoPath;
+    return `${MINIO_BASE}/${photoPath}`;
+}
+
 async function loadProject() {
     if (!PROJECT_ID) { notifications.error('Неверный URL проекта'); return; }
 
@@ -73,8 +80,8 @@ async function loadProject() {
 
     state.title       = project.title;
     state.description = project.description || '';
-    state.characters  = project.characters;
-    state.chapters    = project.chapters;
+    state.characters  = project.characters || [];
+    state.chapters    = project.chapters || [];
 
     state.tags = {};
     if (project.parts)  state.tags['parts']  = project.parts;
@@ -209,14 +216,16 @@ function renderCharacters() {
         const card = document.createElement('div');
         card.className = 'character-card';
 
-        const imgHtml = ch.photo
-            ? `<img src="${ch.photo}" alt="${escHtml(ch.name)}">`
+        const photoUrl = getPhotoUrl(ch.photo);
+        const imgHtml = photoUrl
+            ? `<img src="${photoUrl}" alt="${escHtml(ch.name)}" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;" onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.character-placeholder-fallback').style.display='flex';">`
             : `<span class="character-placeholder">${ch.short_desc ? escHtml(ch.short_desc) : 'нет фото'}</span>`;
 
         card.innerHTML = `
             <span class="character-name">${escHtml(ch.name)}</span>
             <div class="character-img" onclick="openCharView(${i})">
                 ${imgHtml}
+                ${photoUrl ? '<span class="character-placeholder-fallback" style="display:none;">ошибка</span>' : ''}
                 <button class="char-edit-btn" onclick="event.stopPropagation(); openCharEditModal(${i})" title="Редактировать">
                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -243,9 +252,12 @@ function openCharView(index) {
     const photoPlaceholder = $('charViewPhotoPlaceholder');
     const photoHint        = $('charViewPhotoHint');
 
-    if (ch.photo) {
-        photoImg.src = ch.photo;
-        photoImg.dataset.full = ch.photo;
+    const photoUrl = getPhotoUrl(ch.photo);
+    const originalPhotoUrl = photoUrl;
+
+    if (photoUrl) {
+        photoImg.src = photoUrl;
+        photoImg.dataset.full = originalPhotoUrl;
         photoImg.style.display = 'block';
         photoPlaceholder.style.display = 'none';
         photoHint.style.display = 'flex';
@@ -297,10 +309,12 @@ function openCharView(index) {
 }
 
 function openFullscreenPhoto() {
-    const src = $('charViewPhotoImg').dataset.full;
-    if (!src) return;
-    $('fullscreenImg').src = src;
-    $('fullscreenPhoto').style.display = 'flex';
+    const photoImg = $('charViewPhotoImg');
+    const fullscreenUrl = photoImg.dataset.full || photoImg.src;
+    if (fullscreenUrl) {
+        $('fullscreenImg').src = fullscreenUrl;
+        $('fullscreenPhoto').style.display = 'flex';
+    }
 }
 
 function closeFullscreen() {
@@ -358,6 +372,10 @@ function updateCharImgPreviewUI() {
     if (state.charImgData) {
         img.src = state.charImgData;
         img.style.display = 'block';
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        img.style.objectPosition = 'center';
         placeholder.style.display = 'none';
     } else {
         img.style.display = 'none';
@@ -582,45 +600,39 @@ function setupCropDrag(canvas) {
 }
 
 function applyCrop() {
-    const frame     = $('cropFrame');
-    const container = $('cropContainer');
     if (!state.cropImg) return;
-
-    const cr = container.getBoundingClientRect();
-    const fr = frame.getBoundingClientRect();
-    const fx = fr.left - cr.left, fy = fr.top - cr.top;
+    const maxSize = 2000;
+    let w = state.cropImg.width;
+    let h = state.cropImg.height;
+    if (w > maxSize || h > maxSize) {
+        const ratio = Math.min(maxSize / w, maxSize / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+    }
 
     const out = document.createElement('canvas');
-    out.width = out.height = 200;
-    out.getContext('2d').drawImage(
-        state.cropImg,
-        (fx - state.cropImgX) / state.cropScale,
-        (fy - state.cropImgY) / state.cropScale,
-        fr.width  / state.cropScale,
-        fr.height / state.cropScale,
-        0, 0, 200, 200
-    );
+    out.width  = w;
+    out.height = h;
+    out.getContext('2d').drawImage(state.cropImg, 0, 0, w, h);
 
-    state.charImgData = out.toDataURL('image/jpeg', 0.9);
+    state.charImgData = out.toDataURL('image/jpeg', 0.92);
     updateCharImgPreviewUI();
     closeModal('cropModal');
 }
 
 function openChapterModal(index) {
-    state.editingChapterId = null;
-
     if (index !== null && index !== undefined) {
         const ch = state.chapters[index];
         state.editingChapterId = ch.id;
-        $('chapterModalTitle').textContent = 'Редактировать главу';
-        $('chapterName').value = ch.title;
+        const token = localStorage.getItem('access_token');
+        window.location.href = `http://localhost:8012/editor/${PROJECT_ID}/${ch.id}?token=${token}`;
     } else {
-        $('chapterModalTitle').textContent = 'Новая глава';
-        $('chapterName').value = '';
+        state.editingChapterId = null;
+        document.getElementById('chapterModalTitle').textContent = 'Новая глава';
+        document.getElementById('chapterName').value = '';
+        openModal('chapterModal');
+        setTimeout(() => document.getElementById('chapterName').focus(), 50);
     }
-
-    openModal('chapterModal');
-    setTimeout(() => $('chapterName').focus(), 50);
 }
 
 async function saveChapter() {

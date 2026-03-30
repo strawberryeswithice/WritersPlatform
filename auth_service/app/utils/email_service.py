@@ -85,7 +85,7 @@ def _code_email_html(code: str, title: str, description: str) -> str:
         <tr>
           <td style="padding:14px 30px;text-align:center;background:#cfd8e2;">
             <p style="margin:0;color:#718096;font-size:11px;">
-              Если вы не запрашивали это письмо просто проигнорируйте его.
+              Если вы не запрашивали это письмо просто проигнорируйте его
             </p>
           </td>
         </tr>

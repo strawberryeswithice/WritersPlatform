@@ -510,7 +510,6 @@ async function deleteProject(id) {
 }
 window.toggleDropdown = toggleDropdown;
 window.addNewProject = addNewProject;
-window.openEditModal = openEditModal;
 window.deleteProject = deleteProject;
 
 function logout() {

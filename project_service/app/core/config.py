@@ -16,6 +16,13 @@ class Settings(BaseSettings):
 
     CATALOG_URL: str = os.environ.get('CATALOG_URL', 'http://localhost:8011')
 
+    MINIO_ENDPOINT: str = os.environ.get('MINIO_ENDPOINT', 'localhost:9000')
+    MINIO_ACCESS_KEY: str = os.environ.get('MINIO_ACCESS_KEY', 'minioadmin')
+    MINIO_SECRET_KEY: str = os.environ.get('MINIO_SECRET_KEY', 'minioadmin123')
+    MINIO_BUCKET: str = os.environ.get('MINIO_BUCKET', 'character-photos')
+    MINIO_SECURE: bool = os.environ.get('MINIO_SECURE', 'false').lower() == 'true'
+    MINIO_PUBLIC_URL: str = os.environ.get('MINIO_PUBLIC_URL', '')
+
     class Config:
         env_file = ".env"
         extra = "ignore"

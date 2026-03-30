@@ -121,7 +121,7 @@ async function handleRegister() {
         if (res.ok) {
             _pendingRegisterData = null;
             notifications.success(
-                'Аккаунт успешно создан! Теперь вы можете войти.',
+                'Аккаунт успешно создан! Теперь вы можете войти',
                 'Регистрация завершена',
                 5000
             );
@@ -270,7 +270,7 @@ async function handleResetPassword() {
         if (res.ok) {
             _resetEmail = null;
             _resetCodeVerified = false;
-            notifications.success('Пароль успешно изменён! Теперь войдите.', 'Готово', 5000);
+            notifications.success('Пароль успешно изменён! Теперь войдите', 'Готово', 5000);
             showLogin();
         } else {
             notifications.error(data.detail || 'Ошибка сброса пароля', 'Ошибка', 4000);
