@@ -71,6 +71,7 @@ class Chapter(Base):
     id         = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     title      = Column(String(300), nullable=False)
+    content = Column(Text, nullable=True, server_default="")
     char_count = Column(Integer, default=0)
     order      = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

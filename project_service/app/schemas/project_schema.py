@@ -78,10 +78,12 @@ class CharacterResponse(BaseModel):
 
 class ChapterCreate(BaseModel):
     title: str  = Field(..., min_length=1, max_length=300)
+    content: Optional[str] = ""
     order: int  = Field(0, ge=0)
 
 class ChapterUpdate(BaseModel):
     title:      Optional[str] = Field(None, min_length=1, max_length=300)
+    content: Optional[str] = None
     char_count: Optional[int] = Field(None, ge=0)
     order:      Optional[int] = Field(None, ge=0)
 
@@ -89,6 +91,7 @@ class ChapterResponse(BaseModel):
     id:         int
     project_id: int
     title:      str
+    content: Optional[str] = ""
     char_count: int
     order:      int
     created_at: datetime

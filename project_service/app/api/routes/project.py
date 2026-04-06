@@ -198,6 +198,17 @@ async def delete_chapter(
     db.commit()
     await _sync_chapter_count(project_id, db, credentials.credentials)
 
+@router.get("/{project_id}/chapters/{chapter_id}", response_model=ChapterResponse)
+async def get_chapter(
+        project_id: int,
+        chapter_id: int,
+        current_user_id: int = Depends(get_current_user_id),
+        db: Session = Depends(get_db)
+):
+    project = _get_project(project_id, current_user_id, db)
+    chapter = _get_chapter(chapter_id, project, db)
+    return chapter
+
 @router.get("/{project_id}/characters/{character_id}", response_model=CharacterResponse)
 async def get_character(
         project_id: int,
