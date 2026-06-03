@@ -25,6 +25,7 @@ from auth_service.app.utils.email_service import (
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
+
 def _bg_send_register_email(email: str, code: str):
     html = _code_email_html(
         code,
@@ -41,6 +42,7 @@ def _bg_send_reset_email(email: str, code: str):
         "Для сброса пароля введите код на сайте:"
     )
     _send_email(email, "Код сброса пароля", html)
+
 
 @router.post("/send-register-code", response_model=MessageResponse)
 async def send_register_code(
@@ -59,6 +61,7 @@ async def send_register_code(
     background_tasks.add_task(_bg_send_register_email, body.email, code)
     return {"message": "Код отправлен на указанный email"}
 
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     if not verify_code(user_data.email, user_data.verification_code, "register"):
@@ -74,16 +77,21 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
             detail="Пользователь с таким email уже существует",
         )
 
+    is_first_user = db.query(User).count() == 0
+    user_role = "superadmin" if is_first_user else "user"
+
     new_user = User(
         email=user_data.email,
         hashed_password=get_password_hash(user_data.password),
         full_name=user_data.full_name,
         is_active=True,
+        role=user_role,
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     return new_user
+
 
 @router.post("/login", response_model=TokenResponse)
 async def login(user_data: UserLogin, db: Session = Depends(get_db)):
@@ -94,13 +102,10 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
             detail="Неверный email или пароль",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Аккаунт деактивирован",
-        )
     access_token = create_access_token(
-        data={"sub": str(user.id), "email": user.email},
+        data={"sub": str(user.id), "email": user.email, "role": user.role,
+              "tv": user.token_version or 0,
+              "blocked": not user.is_active},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     return {
@@ -109,6 +114,7 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
         "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     }
 
+
 @router.get("/me", response_model=UserResponse)
 async def get_current_user(token: str, db: Session = Depends(get_db)):
     payload = decode_access_token(token)
@@ -116,14 +122,17 @@ async def get_current_user(token: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Невалидный токен")
     user_id = payload.get("sub")
     if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Токен не содержит идентификатор пользователя",
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Токен не содержит идентификатор пользователя")
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+
+    token_tv = payload.get("tv", 0)
+    if (user.token_version or 0) != token_tv:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Сессия устарела")
     return user
+
 
 @router.post("/send-reset-code", response_model=MessageResponse)
 async def send_reset_code(
@@ -132,12 +141,12 @@ async def send_reset_code(
         db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.email == body.email).first()
-
     if user:
         code = _generate_code()
         _store_code(body.email, code, "reset")
         background_tasks.add_task(_bg_send_reset_email, body.email, code)
     return {"message": "Если email зарегистрирован, код будет отправлен"}
+
 
 @router.post("/verify-reset-code", response_model=MessageResponse)
 async def verify_reset_code(body: VerifyCodeRequest):
@@ -157,6 +166,7 @@ async def verify_reset_code(body: VerifyCodeRequest):
             detail="Код истёк",
         )
     return {"message": "Код подтверждён"}
+
 
 @router.post("/reset-password", response_model=MessageResponse)
 async def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):

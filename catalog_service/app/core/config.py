@@ -1,6 +1,7 @@
 import os
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
     JWT_SECRET_KEY: str = os.environ.get(
         'JWT_SECRET_KEY',
@@ -11,11 +12,12 @@ class Settings(BaseSettings):
         'DATABASE_URL',
         'postgresql://postgres:OveR2568@localhost:5432/auth_db'
     )
-
-    DEFAULT_PAGE_SIZE: int = 20
+    DEFAULT_PAGE_SIZE: int = 10
     MAX_PAGE_SIZE: int = 10000
 
     class Config:
         env_file = ".env"
         extra = "ignore"
+
+
 settings = Settings()

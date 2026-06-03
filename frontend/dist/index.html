@@ -1,13 +1,75 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/editor/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>react_editor</title>
-    <script type="module" crossorigin src="/editor/assets/index-9dqW0mFz.js"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <!-- Prevent browser zoom on all pages -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>WritersPlatform</title>
+  <style>
+    /* ── Prevent browser pinch/ctrl+scroll zoom ── */
+    html {
+      touch-action: pan-x pan-y;
+      overflow: hidden;     /* root scroll lives on #root / page containers */
+    }
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    #root {
+      height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    /* ── Custom blue scrollbars (all elements) ── */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #5b5fc7 #e0e4ff;
+    }
+    *::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    *::-webkit-scrollbar-track {
+      background: #e8eaff;
+      border-radius: 10px;
+    }
+    *::-webkit-scrollbar-thumb {
+      background: #5b5fc7;
+      border-radius: 10px;
+      border: 1px solid #e8eaff;
+    }
+    *::-webkit-scrollbar-thumb:hover {
+      background: #3b3caa;
+    }
+    *::-webkit-scrollbar-corner {
+      background: #e8eaff;
+    }
+
+    /* Dark-mode scrollbars (inside elements that have dark background) */
+    .dark-scroll,
+    .dark-scroll * {
+      scrollbar-color: #7b7fff #1a1d4a;
+    }
+    .dark-scroll *::-webkit-scrollbar-track { background: #1a1d4a; }
+    .dark-scroll *::-webkit-scrollbar-thumb { background: #7b7fff; border-color: #1a1d4a; }
+  </style>
+  <script type="module" crossorigin src="/assets/index-uT7jjWG5.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  // Block Ctrl+wheel zoom
+  document.addEventListener('wheel', function(e) {
+    if (e.ctrlKey) e.preventDefault();
+  }, { passive: false });
+  // Block Ctrl +/-/0
+  document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+      e.preventDefault();
+    }
+  });
+</script>
+</body>
 </html>

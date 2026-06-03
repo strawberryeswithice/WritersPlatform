@@ -1,13 +1,69 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>react_editor</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>WritersPlatform</title>
+  <style>
+    html {
+      touch-action: pan-x pan-y;
+      overflow: hidden;
+    }
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    #root {
+      height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #5b5fc7 #e0e4ff;
+    }
+    *::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    *::-webkit-scrollbar-track {
+      background: #e8eaff;
+      border-radius: 10px;
+    }
+    *::-webkit-scrollbar-thumb {
+      background: #5b5fc7;
+      border-radius: 10px;
+      border: 1px solid #e8eaff;
+    }
+    *::-webkit-scrollbar-thumb:hover {
+      background: #3b3caa;
+    }
+    *::-webkit-scrollbar-corner {
+      background: #e8eaff;
+    }
+
+    .dark-scroll,
+    .dark-scroll * {
+      scrollbar-color: #7b7fff #1a1d4a;
+    }
+    .dark-scroll *::-webkit-scrollbar-track { background: #1a1d4a; }
+    .dark-scroll *::-webkit-scrollbar-thumb { background: #7b7fff; border-color: #1a1d4a; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="module" src="/src/main.jsx"></script>
+<script>
+  document.addEventListener('wheel', function(e) {
+    if (e.ctrlKey) e.preventDefault();
+  }, { passive: false });
+  document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+      e.preventDefault();
+    }
+  });
+</script>
+</body>
 </html>

@@ -4,7 +4,7 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/editor/',
+  base: '/',
   build: {
     outDir: path.resolve(__dirname, '../frontend/dist'),
     assetsDir: 'assets',

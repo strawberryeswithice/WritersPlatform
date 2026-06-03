@@ -16,12 +16,20 @@ class Settings(BaseSettings):
 
     CATALOG_URL: str = os.environ.get('CATALOG_URL', 'http://localhost:8011')
 
-    MINIO_ENDPOINT: str = os.environ.get('MINIO_ENDPOINT', 'localhost:9000')
-    MINIO_ACCESS_KEY: str = os.environ.get('MINIO_ACCESS_KEY', 'minioadmin')
-    MINIO_SECRET_KEY: str = os.environ.get('MINIO_SECRET_KEY', 'minioadmin123')
-    MINIO_BUCKET: str = os.environ.get('MINIO_BUCKET', 'character-photos')
-    MINIO_SECURE: bool = os.environ.get('MINIO_SECURE', 'false').lower() == 'true'
-    MINIO_PUBLIC_URL: str = os.environ.get('MINIO_PUBLIC_URL', '')
+    MINIO_ENDPOINT:   str  = os.environ.get('MINIO_ENDPOINT',   'localhost:9000')
+    MINIO_ACCESS_KEY: str  = os.environ.get('MINIO_ACCESS_KEY', 'minioadmin')
+    MINIO_SECRET_KEY: str  = os.environ.get('MINIO_SECRET_KEY', 'minioadmin123')
+    MINIO_BUCKET:     str  = os.environ.get('MINIO_BUCKET',     'character-photos')
+    MINIO_TEXT_BUCKET:str  = os.environ.get('MINIO_TEXT_BUCKET','chapter-texts')
+    MINIO_SECURE:     bool = os.environ.get('MINIO_SECURE', 'false').lower() == 'true'
+    MINIO_PUBLIC_URL: str  = os.environ.get('MINIO_PUBLIC_URL', '')
+
+    YANDEX_API_KEY:    str = os.environ.get('YANDEX_API_KEY',    '')
+    YANDEX_FOLDER_ID:  str = os.environ.get('YANDEX_FOLDER_ID',  '')
+    YANDEX_ALT_MODEL_URI: str = os.environ.get('YANDEX_ALT_MODEL_URI', '')
+
+    QDRANT_HOST: str = os.environ.get('QDRANT_HOST', 'localhost')
+    QDRANT_PORT: int = int(os.environ.get('QDRANT_PORT', '6333'))
 
     class Config:
         env_file = ".env"

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
+
 
 class SendCodeRequest(BaseModel):
     email: EmailStr = Field(..., description="Email адрес пользователя")
@@ -48,6 +49,7 @@ class UserResponse(BaseModel):
     email: str
     full_name: Optional[str]
     is_active: bool
+    role: str = "user"
     created_at: datetime
 
     class Config:
@@ -63,3 +65,41 @@ class TokenResponse(BaseModel):
 class MessageResponse(BaseModel):
     message: str
     detail: Optional[str] = None
+
+
+class AdminUserResponse(BaseModel):
+    id: int
+    email: str
+    full_name: Optional[str]
+    is_active: bool
+    role: str
+    created_at: datetime
+    deleted_projects_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class AddAdminRequest(BaseModel):
+    email: EmailStr = Field(..., description="Email пользователя, которого назначаем администратором")
+    role: str = Field("admin", description="Роль: admin или superadmin")
+
+    @field_validator("role")
+    def validate_role(cls, v):
+        if v not in ("admin", "superadmin"):
+            raise ValueError("Роль должна быть 'admin' или 'superadmin'")
+        return v
+
+
+class AdminLogResponse(BaseModel):
+    id: int
+    admin_id: int
+    admin_email: str
+    admin_role: str
+    action: str
+    target_id: Optional[int]
+    target_info: Optional[dict]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
