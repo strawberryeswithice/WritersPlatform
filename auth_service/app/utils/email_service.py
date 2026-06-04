@@ -1,16 +1,23 @@
+import os
 import random
 import string
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
 
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
-SMTP_USER = "littlebulb95@gmail.com"
-SMTP_PASSWORD = "ipajqzjgafumyaeh"
-SMTP_FROM_NAME = "Auth Service"
-CODE_EXPIRE_MINUTES = 10
+load_dotenv()
+
+SMTP_HOST = os.getenv("SMTP_HOST")
+SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
+SMTP_USER = os.getenv("SMTP_USER")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME")
+CODE_EXPIRE_MINUTES = int(os.getenv("CODE_EXPIRE_MINUTES", 10))
+
+if not all([SMTP_HOST, SMTP_USER, SMTP_PASSWORD, SMTP_FROM_NAME]):
+    raise ValueError("Missing required environment variables. Check your .env file")
 
 _verification_codes: dict = {}
 
