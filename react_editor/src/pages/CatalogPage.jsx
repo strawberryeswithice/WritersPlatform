@@ -151,10 +151,13 @@ function DocxImportModal({ projectId, projectTitle, onClose, onProjectsReload })
   const handleChoice = (generateChars) => {
     const good = files.filter(f => f.text !== null).map(f => ({ title: f.name, text: f.text }));
     if (!good.length) { onClose(); return; }
+
     if (generateChars) {
       notifications.info('ИИ анализирует главы и генерирует карточки персонажей… Идёт в фоне.', 'ИИ генерирует');
     }
+
     onClose();
+
     fetch(`http://localhost:8012/api/projects/${projectId}/import-chapters`, {
       method: 'POST',
       headers: {
@@ -189,7 +192,7 @@ function DocxImportModal({ projectId, projectTitle, onClose, onProjectsReload })
         <div style={{ background:'#fff', borderRadius:20, padding:36, width:400,
           boxShadow:'0 20px 60px rgba(30,32,96,0.25)', textAlign:'center' }}
           onClick={e => e.stopPropagation()}>
-          <div style={{ fontSize:44, marginBottom:14 }}>🤖</div>
+          <div style={{ fontSize:44, marginBottom:14 }}></div>
           <h3 style={{ fontFamily:'Nunito', color:'#2b2c7f', fontSize:18, marginBottom:8 }}>
             Сгенерировать карточки персонажей и граф отношений?
           </h3>
@@ -397,7 +400,7 @@ function AddProjectModal({ onClose, onCreated, onProjectsReload }) {
               background:'linear-gradient(135deg,rgba(43,44,127,0.06),rgba(91,95,199,0.1))',
               color:'#2b2c7f', fontFamily:'Nunito', fontWeight:700, cursor:'pointer',
               fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-            📤 Экспортировать из DOCX
+            Экспортировать из DOCX
           </button>
         </div>
       </div>
@@ -557,7 +560,7 @@ function AppealModal({ project, onClose, onDismissed }) {
             <button onClick={() => setStep('info')} style={{
               background: 'none', border: 'none', color: '#8b9cbd',
               fontFamily: 'Nunito', fontSize: 13, cursor: 'pointer', marginBottom: 12, padding: 0,
-            }}>← назад</button>
+            }}>назад</button>
             <h3 style={{ margin: '0 0 8px', color: '#2b2c7f', fontSize: 17, fontWeight: 800 }}>
               Оспорить решение
             </h3>
@@ -600,8 +603,8 @@ function AppealModal({ project, onClose, onDismissed }) {
 
 
 function GeneratingOverlay({ projectId }) {
-  const [secs, setSecs] = React.useState(0);
-  React.useEffect(() => {
+  const [secs, setSecs] = useState(0);
+  useEffect(() => {
     const t = setInterval(() => setSecs(s => s + 1), 1000);
     return () => clearInterval(t);
   }, []);
@@ -632,126 +635,170 @@ function GeneratingOverlay({ projectId }) {
 }
 
 function ProjectPdfExportModal({ project, onClose }) {
-  const [exporting, setExporting] = React.useState(false);
-  const [progress, setProgress] = React.useState('');
+  const [exporting, setExporting] = useState(false);
+  const [progress, setProgress] = useState('');
 
-  const loadJsPDF = () => new Promise((res, rej) => {
-    if (window.jspdf) { res(window.jspdf.jsPDF); return; }
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    s.onload = () => res(window.jspdf.jsPDF);
-    s.onerror = rej;
-    document.head.appendChild(s);
+  const loadPdfMake = () => new Promise((res, rej) => {
+    if (window.pdfMake && window.pdfMake.vfs) { res(window.pdfMake); return; }
+    const loadScript = (src) => new Promise((r, j) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = r; s.onerror = j;
+      document.head.appendChild(s);
+    });
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js')
+      .then(() => loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js'))
+      .then(() => res(window.pdfMake))
+      .catch(rej);
   });
+
+  const htmlToContent = (html) => {
+    if (!html) return [];
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const result = [];
+
+    const walkNode = (node, styles = {}) => {
+      if (node.nodeType === 3) {
+        const text = node.textContent;
+        if (text) {
+          const item = { text, color: '#2d3f52', fontSize: 11 };
+          if (styles.bold) item.bold = true;
+          if (styles.italic) item.italics = true;
+          if (styles.underline) item.decoration = 'underline';
+          return item;
+        }
+        return null;
+      }
+      if (node.nodeType !== 1) return null;
+      const tag = node.tagName.toLowerCase();
+
+      if (['h1','h2','h3','h4'].includes(tag)) {
+        const sizes = { h1: 18, h2: 15, h3: 13, h4: 12 };
+        const children = [];
+        node.childNodes.forEach(c => { const r = walkNode(c, { bold: true }); if (r) children.push(r); });
+        if (children.length) {
+          result.push({ text: children, fontSize: sizes[tag] || 13, bold: true, color: '#2b2c7f', margin: [0, 8, 0, 4] });
+        }
+        return null;
+      }
+      if (tag === 'p' || tag === 'div') {
+        const children = [];
+        node.childNodes.forEach(c => { const r = walkNode(c, styles); if (r) children.push(r); });
+        const flat = children.flatMap(c => Array.isArray(c) ? c : [c]);
+        if (flat.length) {
+          result.push({ text: flat, margin: [0, 0, 0, 5] });
+        }
+        return null;
+      }
+      if (tag === 'br') { result.push({ text: ' ', margin: [0,0,0,3] }); return null; }
+      if (tag === 'ul' || tag === 'ol') {
+        const items = [];
+        node.querySelectorAll('li').forEach(li => {
+          const txt = li.textContent.trim();
+          if (txt) items.push({ text: txt, fontSize: 11, color: '#2d3f52' });
+        });
+        if (items.length) {
+          result.push(tag === 'ul' ? { ul: items, margin: [0, 2, 0, 6] } : { ol: items, margin: [0, 2, 0, 6] });
+        }
+        return null;
+      }
+      if (tag === 'blockquote') {
+        const txt = node.textContent.trim();
+        if (txt) result.push({
+          text: txt, italics: true, color: '#556080',
+          margin: [12, 4, 0, 8],
+          background: '#f4f6ff',
+        });
+        return null;
+      }
+
+      const newStyles = { ...styles };
+      if (['strong','b'].includes(tag)) newStyles.bold = true;
+      if (['em','i'].includes(tag)) newStyles.italic = true;
+      if (['u'].includes(tag)) newStyles.underline = true;
+
+      const inlineChildren = [];
+      node.childNodes.forEach(c => { const r = walkNode(c, newStyles); if (r) inlineChildren.push(r); });
+      return inlineChildren.length ? inlineChildren : null;
+    };
+
+    tmp.childNodes.forEach(n => walkNode(n));
+
+    if (result.length === 0) {
+      const plain = (tmp.textContent || '').trim();
+      if (plain) {
+        plain.split(/\n+/).filter(Boolean).forEach(para => {
+          result.push({ text: para, fontSize: 11, color: '#2d3f52', margin: [0, 0, 0, 5] });
+        });
+      }
+    }
+    return result;
+  };
 
   const doExport = async () => {
     setExporting(true);
+    setProgress('Загрузка библиотеки…');
     try {
-      setProgress('Загрузка библиотеки…');
-      const JsPDF = await loadJsPDF();
+      const pdfMake = await loadPdfMake();
+      setProgress('Формирование документа…');
 
-      const doc = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-      const PW = 210, PH = 297, ML = 25, MR = 25, MT = 30, MB = 25;
-      const TW = PW - ML - MR;
+      const content = [];
 
-      const wrapText = (text, fontSize, maxW) => {
-        doc.setFontSize(fontSize);
-        return doc.splitTextToSize(text, maxW);
-      };
-
-      let curY = MT;
-      const ensureSpace = (need) => {
-        if (curY + need > PH - MB) { doc.addPage(); curY = MT; }
-      };
-
-      const writeLine = (text, fontSize, isBold, color, lineH, indent = 0) => {
-        doc.setFontSize(fontSize);
-        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-        doc.setTextColor(...color);
-        const lines = wrapText(text, fontSize, TW - indent);
-        for (const line of lines) {
-          ensureSpace(lineH);
-          doc.text(line, ML + indent, curY);
-          curY += lineH;
-        }
-      };
-
-      setProgress('Создание обложки…');
-      curY = PH / 2 - 20;
-      doc.setFontSize(28);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(43, 44, 127);
-      const titleLines = doc.splitTextToSize(project.title, TW);
-      const titleH = titleLines.length * 12;
-      titleLines.forEach(line => {
-        doc.text(line, PW / 2, curY, { align: 'center' });
-        curY += 12;
-      });
-      doc.setDrawColor(69, 71, 181);
-      doc.setLineWidth(0.8);
-      doc.line(ML + TW * 0.2, curY + 4, ML + TW * 0.8, curY + 4);
-      curY += 12;
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(107, 124, 158);
-      doc.text(new Date().toLocaleDateString('ru'), PW / 2, curY + 8, { align: 'center' });
+      content.push(
+        { text: project.title, style: 'coverTitle', alignment: 'center', margin: [0, 200, 0, 16] },
+        { canvas: [{ type: 'line', x1: 80, y1: 0, x2: 370, y2: 0, lineWidth: 1.5, lineColor: '#5b5fc7' }], margin: [0, 0, 0, 14] },
+        { text: new Date().toLocaleDateString('ru-RU', { year:'numeric', month:'long', day:'numeric' }),
+          alignment: 'center', color: '#8b9cbd', fontSize: 10, margin: [0, 0, 0, 0] }
+      );
 
       for (let ci = 0; ci < project.chapters.length; ci++) {
         const ch = project.chapters[ci];
         setProgress(`Глава ${ci + 1} из ${project.chapters.length}…`);
 
-        doc.addPage();
-        curY = MT;
+        content.push({ text: '', pageBreak: 'before' });
+        content.push({
+          text: ch.title || `Глава ${ci + 1}`,
+          style: 'chapterTitle',
+          margin: [0, 0, 0, 4],
+        });
+        content.push({
+          canvas: [{ type: 'line', x1: 0, y1: 0, x2: 450, y2: 0, lineWidth: 0.5, lineColor: '#c8ccdf' }],
+          margin: [0, 0, 0, 12],
+        });
 
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(43, 44, 127);
-        const chLines = doc.splitTextToSize(ch.title || `Глава ${ci + 1}`, TW);
-        chLines.forEach(line => { doc.text(line, ML, curY); curY += 8; });
-
-        doc.setDrawColor(200, 202, 230);
-        doc.setLineWidth(0.4);
-        doc.line(ML, curY + 1, ML + TW, curY + 1);
-        curY += 8;
-
-        const tmp = document.createElement('div');
-        tmp.innerHTML = ch.content || '';
-        const plain = (tmp.textContent || tmp.innerText || '').trim();
-
-        if (!plain) {
-          doc.setFontSize(11);
-          doc.setFont('helvetica', 'italic');
-          doc.setTextColor(150, 150, 150);
-          doc.text('(глава пуста)', ML, curY);
-          curY += 7;
-          continue;
-        }
-
-        const paras = plain.split('\n').flatMap(p => p.split('\r')).map(p => p.trim()).filter(Boolean);
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(45, 63, 82);
-
-        for (const para of paras) {
-          const lines = doc.splitTextToSize(para, TW - 5);
-          for (const line of lines) {
-            ensureSpace(6.5);
-            doc.text(line, ML + 5, curY);
-            curY += 6.5;
-          }
-          curY += 2;
+        const chContent = htmlToContent(ch.content || '');
+        if (chContent.length === 0) {
+          content.push({ text: '(глава пуста)', italics: true, color: '#aaa', fontSize: 10 });
+        } else {
+          chContent.forEach(block => content.push(block));
         }
       }
 
+      const docDef = {
+        content,
+        defaultStyle: { font: 'Roboto', fontSize: 11, lineHeight: 1.5, color: '#2d3f52' },
+        styles: {
+          coverTitle: { fontSize: 26, bold: true, color: '#2b2c7f', lineHeight: 1.3 },
+          chapterTitle: { fontSize: 17, bold: true, color: '#2b2c7f' },
+        },
+        pageSize: 'A4',
+        pageMargins: [60, 60, 60, 55],
+        pageBreakBefore: (currentNode) => currentNode.pageBreak === 'before',
+      };
+
       setProgress('Сохранение…');
-      doc.save(`${project.title.replace(/[^a-zA-Zа-яА-Я0-9 ]/g, '_')}.pdf`);
+      const filename = `${project.title.replace(/[^\wа-яА-ЯёЁ0-9 ]/g, '_')}.pdf`;
+      pdfMake.createPdf(docDef).download(filename, () => {
+        setExporting(false);
+        onClose();
+      });
     } catch (e) {
       console.error(e);
+      setExporting(false);
       alert('Ошибка при создании PDF: ' + e.message);
     }
-    setExporting(false);
-    onClose();
   };
+
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(20,20,60,0.7)',
@@ -759,19 +806,24 @@ function ProjectPdfExportModal({ project, onClose }) {
       onClick={!exporting ? onClose : undefined}>
       <div style={{ background: '#fff', borderRadius: 20, padding: 32, width: 420,
         boxShadow: '0 24px 80px rgba(30,32,96,0.35)' }} onClick={e => e.stopPropagation()}>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ fontFamily: 'Nunito', color: '#2b2c7f', fontSize: 18, margin: 0 }}>Экспорт PDF</h3>
-          {!exporting && <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8b9cbd', fontSize: 20 }}>✕</button>}
+          {!exporting && (
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8b9cbd', fontSize: 20 }}>✕</button>
+          )}
         </div>
+
         <p style={{ fontFamily: 'Nunito', fontSize: 14, color: '#6b7c9e', marginBottom: 8 }}>
           Проект: <strong style={{ color: '#2b2c7f' }}>{project.title}</strong>
         </p>
         <p style={{ fontFamily: 'Nunito', fontSize: 13, color: '#8b9cbd', marginBottom: 8, lineHeight: 1.5 }}>
-          Каждая глава начинается с нового листа. Название проекта — на первой странице.
+          Каждая глава начинается с нового листа
         </p>
         <p style={{ fontFamily: 'Nunito', fontSize: 13, color: '#6b7c9e', marginBottom: 24 }}>
           Глав: <strong>{project.chapters.length}</strong>
         </p>
+
         {exporting && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20,
             padding: '10px 14px', background: '#f0f2ff', borderRadius: 10 }}>
@@ -781,13 +833,21 @@ function ProjectPdfExportModal({ project, onClose }) {
             <span style={{ fontFamily: 'Nunito', fontSize: 13, color: '#4547b5' }}>{progress}</span>
           </div>
         )}
+
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={onClose} disabled={exporting} style={{ flex: 1, padding: '11px', borderRadius: 12,
-            border: '1.5px solid #d8dff0', background: 'transparent', color: exporting ? '#ccc' : '#6b7c9e',
-            fontFamily: 'Nunito', fontWeight: 600, cursor: exporting ? 'default' : 'pointer', fontSize: 14 }}>Отмена</button>
-          <button onClick={doExport} disabled={exporting} style={{ flex: 1, padding: '11px', borderRadius: 12,
-            border: 'none', background: exporting ? '#a0a3c8' : '#2b2c7f', color: '#fff',
-            fontFamily: 'Nunito', fontWeight: 700, cursor: exporting ? 'default' : 'pointer', fontSize: 14 }}>
+          <button onClick={onClose} disabled={exporting} style={{
+            flex: 1, padding: '11px', borderRadius: 12,
+            border: '1.5px solid #d8dff0', background: 'transparent',
+            color: exporting ? '#ccc' : '#6b7c9e',
+            fontFamily: 'Nunito', fontWeight: 600,
+            cursor: exporting ? 'default' : 'pointer', fontSize: 14,
+          }}>Отмена</button>
+          <button onClick={doExport} disabled={exporting} style={{
+            flex: 1, padding: '11px', borderRadius: 12, border: 'none',
+            background: exporting ? '#a0a3c8' : '#2b2c7f', color: '#fff',
+            fontFamily: 'Nunito', fontWeight: 700,
+            cursor: exporting ? 'default' : 'pointer', fontSize: 14,
+          }}>
             {exporting ? progress || 'Генерация…' : 'Скачать PDF'}
           </button>
         </div>
@@ -810,6 +870,7 @@ export default function CatalogPage() {
   const [isBlocked, setIsBlocked] = useState(false);
   const [pdfExportProject, setPdfExportProject] = useState(null);
   const searchTimer = useRef(null);
+  const projectsRef = useRef([]);
 
   const onUnauth = () => { removeToken(); window.location.href = 'http://localhost:8010/'; };
 
@@ -827,7 +888,7 @@ export default function CatalogPage() {
           const userData = await r.json();
           setIsBlocked(userData.is_active === false);
         }
-      } catch
+      } catch { /* network error — ignore */ }
     };
     const interval = setInterval(checkSession, 30_000);
     return () => clearInterval(interval);
@@ -841,8 +902,10 @@ export default function CatalogPage() {
     const res = await apiFetch(url.toString(), {}, onUnauth);
     if (!res) return;
     const data = await res.json();
-    setProjects(data.items || data || []);
-    setPage(1);
+    const newProjects = data.items || data || [];
+    projectsRef.current = newProjects;
+    setProjects(newProjects);
+    if (newProjects.length === 0) setPage(1);
   };
 
   useEffect(() => {
@@ -1067,7 +1130,7 @@ export default function CatalogPage() {
             </button>
           )}
           <button onClick={() => { removeToken(); window.location.href = 'http://localhost:8010/'; }} style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 14px',
             background: 'none', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 12,
             color: 'rgba(255,255,255,0.6)', fontFamily: 'Nunito', fontSize: 13,
             cursor: 'pointer', transition: 'color .15s, border-color .15s',
@@ -1075,9 +1138,6 @@ export default function CatalogPage() {
             onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'; }}
             onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
             выйти
           </button>
         </div>
@@ -1122,9 +1182,6 @@ export default function CatalogPage() {
               onMouseEnter={e => e.currentTarget.style.opacity = '.9'}
               onMouseLeave={e => e.currentTarget.style.opacity = '1'}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
               новый проект
             </button>
             )}
@@ -1137,11 +1194,8 @@ export default function CatalogPage() {
               display: 'flex', alignItems: 'center', gap: 10,
               backdropFilter: 'blur(8px)',
             }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8888" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
               <div>
-                <div style={{ fontFamily: 'Nunito', fontWeight: 700, color: '#fca5a5', fontSize: 14 }}>Аккаунт заблокирован</div>
+                <div style={{ fontFamily: 'Nunito', fontWeight: 700, color: '#fca5a5', fontSize: 14 }}>ⓘ Аккаунт заблокирован</div>
                 <div style={{ fontFamily: 'Nunito', fontSize: 12, color: 'rgba(252,165,165,0.8)', marginTop: 2 }}>
                   Вы можете просматривать и экспортировать проекты, но не редактировать их.
                 </div>
@@ -1153,7 +1207,7 @@ export default function CatalogPage() {
               textAlign: 'center', padding: '80px 20px',
               color: 'rgba(255,255,255,0.5)', fontFamily: 'Nunito', fontSize: 16,
             }}>
-              {projects.length === 0 ? 'Проектов пока нет — создайте первый!' : 'Ничего не найдено'}
+              {projects.length === 0 ? 'Проектов пока нет – создайте первый!' : 'Ничего не найдено'}
             </div>
           ) : (
             visibleProjects.map(p => {
