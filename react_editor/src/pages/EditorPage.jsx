@@ -1720,7 +1720,6 @@ export default function Editor() {
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* ── AI ghost text (pending insert) ── */
         .ai-pending {
           color: ${dark ? "#8890cc" : "#9aaabf"};
           background: ${dark ? "rgba(100,110,220,0.10)" : "rgba(90,110,180,0.07)"};
@@ -1734,7 +1733,6 @@ export default function Editor() {
         .ai-pending:hover {
           background: ${dark ? "rgba(100,110,220,0.18)" : "rgba(90,110,180,0.13)"};
         }
-        /* Tab hint pill after the ghost text */
         .ai-pending::after {
           content: ' ⇥';
           font-size: 10px;
@@ -1747,7 +1745,6 @@ export default function Editor() {
           margin-left: 4px;
         }
 
-        /* ── AI chat textarea ── */
         .ai-chat-input {
           resize: none;
           border-radius: 10px;
@@ -2032,7 +2029,6 @@ export default function Editor() {
 
           {aiPanelOpen && (
             <>
-              {/* Collapsed strip */}
               {aiPanelCollapsed && (
                 <div style={{
                   flex: "0 0 44px", width: 44, overflowY: "hidden",
@@ -2060,7 +2056,6 @@ export default function Editor() {
                 </div>
               )}
 
-              {/* Full panel */}
               {!aiPanelCollapsed && (
             <div style={{
               flex: "0 0 50%", width: "50%", overflowY: "auto",
@@ -2164,7 +2159,6 @@ export default function Editor() {
                     );
                   })}
 
-                  {/* ── Соответствие персонажам (only when issues found) ── */}
                   {(() => {
                     const issues = aiAnalysis?.consistency_issues;
                     if (!issues || !issues.length) return null;
@@ -2525,7 +2519,6 @@ export default function Editor() {
         </div>
       </div>
 
-      {/* Floating Ask AI button — bottom-right corner */}
       {!chatPanelOpen && (
         <button
           onClick={() => { setAiPanelOpen(true); setAiPanelCollapsed(false); setChatPanelOpen(true); }}
